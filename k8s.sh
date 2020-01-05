@@ -105,9 +105,19 @@ install_kubernetes() {
     apt-mark hold kubelet kubeadm kubectl
     swapoff -a
     hostnamectl set-hostname 
+}
+
+deploy_kubernetes() {
+    echo "Deploying Kubernetes for master node"
+
     kubeadm init --pod-network-cidr=10.244.0.0/16
 }
 
 parse_arguments $@
 install_docker
 install_kubernetes
+
+if [ $isMaster -eq 1 ]
+then 
+    deploy_kubernetes
+fi
