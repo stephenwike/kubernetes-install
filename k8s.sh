@@ -47,10 +47,10 @@ testing_here_doc() {
     echo "Testing a HEREDOC"
     echo "Testing a HEREDOC - is different"
 
-    cat <<- EOF
-    The current working directory is here
-    You are logged in as yourself
-    EOF
+    # cat <<- EOF
+    # The current working directory is here
+    # You are logged in as yourself
+    # EOF
 
 }
 
