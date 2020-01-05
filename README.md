@@ -1,6 +1,36 @@
-# Install and Run Docker
-## https://docs.docker.com/install/linux/docker-ce/ubuntu
+# How I installed Kubernetes in Ubuntu 19.04
 
+> https://docs.docker.com/install/linux/docker-ce/ubuntu
+
+## Obtaining and Setting Up Servers
+
+TODO: ...
+
+## Install and Run Docker (On each server)
+
+> https://docs.docker.com/v17.09/engine/installation/linux/docker-ce/ubuntu/
+
+sudo apt update
+    sudo apt-get install \
+        apt-transport-https \
+        ca-certificates \
+        curl \
+        software-properties-common
+    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+    # TODO: Validate fingerprint - https://docs.docker.com/v17.09/engine/installation/linux/docker-ce/ubuntu/#set-up-the-repository
+    sudo add-apt-repository \
+        "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+        $(lsb_release -cs) \
+        stable"
+    sudo apt update
+    sudo apt install -y docker-ce
+
+##
+
+
+
+
+```
 apt update
 
 apt install -y \
@@ -411,3 +441,7 @@ Deploy the Cloud Native PLONK Stack
 You may have heard of the LAMP stack for Linux, Apache, MySQL and PHP? The PLONK Stack is designed to power application deployments on Kubernetes by using several of the most popular cloud native projects together - Prometheus Linux/Linkerd OpenFaaS NATS and Kubernetes.
 
 Read the article: Introducing the PLONK Stack
+
+## Running the Setup Script
+
+bash <(curl -Ls https://raw.githubusercontent.com/stephenwike/kubernetes-install/master/k8s.sh)
