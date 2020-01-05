@@ -43,5 +43,15 @@ EOF
     kubeadm init --pod-network-cidr=10.244.0.0/16
 }
 
+testing_here_doc() {
+    echo "Testing a HEREDOC"
+
+    cat << EOF
+        The current working directory is here
+        You are logged in as yourself
+    EOF
+}
+
 # install_docker
-install_kubernetes
+# install_kubernetes
+testing_here_doc
