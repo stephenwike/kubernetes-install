@@ -43,7 +43,7 @@ parse_arguments() {
                                     ;;
             -m | --master )         isMaster=1
                                     ;;
-            -h | --help )           usage
+            --help )                usage
                                     exit
                                     ;;
             * )                     echo "Incorrect Usage:"
