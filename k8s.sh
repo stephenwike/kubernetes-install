@@ -4,7 +4,7 @@ install_docker() {
     echo "Installing Docker"
 
     apt update
-    apt-get install \
+    apt-get install -y \
         apt-transport-https \
         ca-certificates \
         curl \
@@ -22,8 +22,20 @@ install_docker() {
 install_kubernetes() {
     echo "Installing Kubernetes"
 
-    apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
-    apt install -y kubeadm
+    apt update
+    apt install -y \
+        apt-transport-https \
+        curl
+    curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+    cat << EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
+        deb https://apt.kubernetes.io/ kubernetes-xenial main
+EOF    
+    apt update
+    apt install -y \
+        kubelet \
+        kubeadm \
+        kubectl
+    apt-mark hold kubelet kubeadm kubectl
     swapoff -a
     hostnamectl set-hostname k8s-master
     kubeadm init --pod-network-cidr=10.244.0.0/16
