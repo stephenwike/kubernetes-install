@@ -52,6 +52,8 @@ parse_arguments() {
         esac
         shift
     done
+
+    echo "Hostname: $hostname"
 }
 
 install_docker() {
