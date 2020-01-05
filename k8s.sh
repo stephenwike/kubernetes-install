@@ -45,6 +45,7 @@ EOF
 
 testing_here_doc() {
     echo "Testing a HEREDOC"
+    echo "Testing a HEREDOC - is different"
 
     cat <<- EOF
     The current working directory is here
