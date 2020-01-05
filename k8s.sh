@@ -23,6 +23,8 @@ _EOF_
 
 parse_arguments() {
     echo "Parsing Arguments"
+    echo "$# arguments provided"
+    echo "$@"
 
     hostname=node-default
     username=default
