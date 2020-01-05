@@ -115,6 +115,9 @@ deploy_kubernetes() {
     echo "Deploying Kubernetes for master node"
 
     kubeadm init --pod-network-cidr=10.244.0.0/16
+
+    adduser $username --gecos "$username,,," --disabled-password
+    echo "$username:$password" | chpasswd
 }
 
 parse_arguments $@

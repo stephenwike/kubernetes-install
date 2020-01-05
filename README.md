@@ -1,6 +1,7 @@
 # How I installed Kubernetes in Ubuntu 19.04
 
 > https://docs.docker.com/install/linux/docker-ce/ubuntu
+> https://vitux.com/install-and-deploy-kubernetes-on-ubuntu/
 
 ## Obtaining and Setting Up Servers
 
@@ -10,6 +11,7 @@ TODO: ...
 
 > https://docs.docker.com/v17.09/engine/installation/linux/docker-ce/ubuntu/
 
+```
 sudo apt update
     sudo apt-get install \
         apt-transport-https \
@@ -24,9 +26,22 @@ sudo apt update
         stable"
     sudo apt update
     sudo apt install -y docker-ce
+```
 
-##
+## Installing and Deploying Kubernetes
 
+```
+sudo apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
+sudo apt install -y kubeadm
+sudo swapoff -a
+sudo hostnamectl set-hostname [host-name]
+```
+
+### On Master Only
+
+```
+sudo kubeadm init --pod-network-cidr=10.244.0.0/16
+```
 
 
 
@@ -444,4 +459,21 @@ Read the article: Introducing the PLONK Stack
 
 ## Running the Setup Script
 
-bash <(curl -Ls https://raw.githubusercontent.com/stephenwike/kubernetes-install/master/k8s.sh)
+
+### Installing the Master Node
+
+### Flags used for all node installations
+
+-h specifies the unique host name for this machine.  Replace [hostname] with your unique hostname
+
+curl -Ljs -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/stephenwike/kubernetes-install/master/k8s.sh | bash -s -- -m -h [hostname] -u [username] -p [password]
+
+-m specifies a master node kubernetes installation
+
+-u specifies the user account used to deploy the kubernetes cluster.  A new user will be added if one doesn't exist. Replace [username] with the user account that will be used to deploy the kubernetes cluster.
+
+-p specifies the password the the user account listed above. Replace [password] with you users password
+
+### Installing Minion Nodes
+
+curl -Ljs -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/stephenwike/kubernetes-install/master/k8s.sh | bash -s -- -h [hostname]
