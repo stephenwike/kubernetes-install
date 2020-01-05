@@ -104,7 +104,7 @@ install_kubernetes() {
         kubectl
     apt-mark hold kubelet kubeadm kubectl
     swapoff -a
-    hostnamectl set-hostname 
+    hostnamectl set-hostname $hostname
 }
 
 deploy_kubernetes() {
