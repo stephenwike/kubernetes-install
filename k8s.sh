@@ -109,5 +109,5 @@ install_kubernetes() {
 }
 
 parse_arguments $@
-# install_docker
-# install_kubernetes
+install_docker
+install_kubernetes
