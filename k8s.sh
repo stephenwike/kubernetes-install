@@ -46,10 +46,10 @@ EOF
 testing_here_doc() {
     echo "Testing a HEREDOC"
 
-cat << EOF
-The current working directory is here
-You are logged in as yourself
-EOF
+    cat <<- EOF
+    The current working directory is here
+    You are logged in as yourself
+    EOF
 
 }
 
