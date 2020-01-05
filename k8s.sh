@@ -28,9 +28,7 @@ install_kubernetes() {
         curl
     curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
     
-    cat << EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
-        deb https://apt.kubernetes.io/ kubernetes-xenial main
-EOF
+    echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
 
     apt update
     apt install -y \
@@ -43,16 +41,5 @@ EOF
     kubeadm init --pod-network-cidr=10.244.0.0/16
 }
 
-testing_here_doc() {
-    echo "Testing a HEREDOC"
-
-    cat <<- EOF
-    The current working directory is here
-    You are logged in as yourself
-    EOF
-
-}
-
 # install_docker
-# install_kubernetes
-testing_here_doc
+install_kubernetes
