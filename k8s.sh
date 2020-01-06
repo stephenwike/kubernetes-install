@@ -116,6 +116,7 @@ deploy_kubernetes() {
 
     
     apiserveraddr=$(hostname -I)
+    echo "APIServerAddress: $apiserveraddr"
     echo kubeadm init --apiserver-advertise-address=$apiserveraddr
     kubeadm init --apiserver-advertise-address=$apiserveraddr
 
