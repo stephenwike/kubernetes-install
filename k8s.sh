@@ -99,10 +99,7 @@ install_kubernetes() {
         curl
     curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
     
-    add-apt-repository \
-        "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-        $(lsb_release -cs) \
-        stable"
+    echo “deb http://apt.kubernetes.io/ kubernetes-xenial main” >> /etc/apt/sources.list.d/kubernetes.list
 
     apt update
     apt install -y \
@@ -132,6 +129,11 @@ deploy_kubernetes() {
     runuser -l $username -c "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
 }
 
+configure_pod() {
+
+}
+
+### MAIN ------------------------------------
 parse_arguments $@
 install_docker
 install_kubernetes
@@ -142,3 +144,4 @@ then
 else
     configure_pod
 fi
+### END MAIN ----------------------------------
