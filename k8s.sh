@@ -125,10 +125,6 @@ deploy_kubernetes() {
     runuser -l $username -c "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
 }
 
-configure_pod() {
-
-}
-
 parse_arguments $@
 install_docker
 install_kubernetes
