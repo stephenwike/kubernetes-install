@@ -114,7 +114,9 @@ install_kubernetes() {
 deploy_kubernetes() {
     echo "Deploying Kubernetes for master node"
 
-    sudo kubeadm init --apiserver-advertise-address=$(hostname -I)
+    
+    apiserveraddr=$(hostname -I)
+    sudo kubeadm init --apiserver-advertise-address=$apiserveraddr
 
     adduser $username --gecos "$username,,," --disabled-password
     echo "$username:$password" | chpasswd
