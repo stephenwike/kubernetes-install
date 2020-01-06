@@ -115,16 +115,24 @@ deploy_kubernetes() {
     echo "Deploying Kubernetes for master node"
 
     kubeadm init --pod-network-cidr=10.244.0.0/16
+}
 
+make_user() {
     adduser $username --gecos "$username,,," --disabled-password
     echo "$username:$password" | chpasswd
+    
+    mkdir -p /home/$username/.kube
+    cp -i /etc/kubernetes/admin.conf /home/$username/.kube/config
+    chown $username:$username /home/$username/.kube/config
+    runuser -l $username -c "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
 }
 
 parse_arguments $@
-install_docker
-install_kubernetes
+# install_docker
+# install_kubernetes
 
 if [ $isMaster -eq 1 ]
 then 
-    deploy_kubernetes
+    # deploy_kubernetes
+    make_user
 fi
