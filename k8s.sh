@@ -118,7 +118,7 @@ deploy_kubernetes() {
     apiserveraddr=$(hostname -I | cut -d' ' -f1)
     echo "APIServerAddress: $apiserveraddr"
     echo kubeadm init --apiserver-advertise-address=$apiserveraddr
-    kubeadm init --apiserver-advertise-address=$apiserveraddr
+    kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=$apiserveraddr
 
     adduser $username --gecos "$username,,," --disabled-password
     echo "$username:$password" | chpasswd
