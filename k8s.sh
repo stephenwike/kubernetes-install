@@ -116,7 +116,8 @@ deploy_kubernetes() {
 
     
     apiserveraddr=$(hostname -I)
-    sudo kubeadm init --apiserver-advertise-address=$apiserveraddr
+    echo kubeadm init --apiserver-advertise-address=$apiserveraddr
+    kubeadm init --apiserver-advertise-address=$apiserveraddr
 
     adduser $username --gecos "$username,,," --disabled-password
     echo "$username:$password" | chpasswd
