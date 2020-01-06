@@ -127,10 +127,25 @@ deploy_kubernetes() {
     cp -i /etc/kubernetes/admin.conf /home/$username/.kube/config
     chown $username:$username /home/$username/.kube/config
     runuser -l $username -c "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
+
+    ufw allow ssh
+    ufw default deny outgoing
+    ufw default deny incoming
+    ufw --force enable
+    ufw allow 6443
+    ufw allow 2379/tcp
+    ufw allow 2380/tcp
+    ufw allow 10250/tcp
+    ufw allow 10251/tcp
+    ufw allow 10252/tcp
 }
 
 configure_pod() {
-
+    ufw allow ssh
+    ufw default deny outgoing
+    ufw default deny incoming
+    ufw --force enable
+    ufw allow 10250/tcp
 }
 
 ### MAIN ------------------------------------
