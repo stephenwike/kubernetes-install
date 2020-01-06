@@ -115,7 +115,7 @@ deploy_kubernetes() {
     echo "Deploying Kubernetes for master node"
 
     
-    apiserveraddr=$(hostname -I)
+    apiserveraddr=$(hostname -I | cut -d' ' -f1)
     echo "APIServerAddress: $apiserveraddr"
     echo kubeadm init --apiserver-advertise-address=$apiserveraddr
     kubeadm init --apiserver-advertise-address=$apiserveraddr
