@@ -35,8 +35,6 @@ parse_arguments() {
     password=default
 
     isMaster=0
-    skipDocker=0
-    skipKubernetes=0
     
     while [ "$1" != "" ]; do
         case $1 in
@@ -50,10 +48,6 @@ parse_arguments() {
                                         password=$1
                                         ;;
             -m | --master )             isMaster=1
-                                        ;;
-            -d | --skip-docker )        skipDocker=1
-                                        ;;
-            -d | --skip-kuberenetes )   skipKubernetes=1
                                         ;;
             --help )                    usage
                                         exit
@@ -116,7 +110,7 @@ install_kubernetes() {
         kubelet \
         kubeadm \
         kubectl
-        
+
     apt-mark hold kubelet kubeadm kubectl
     swapoff -a
     hostnamectl set-hostname $hostname
@@ -162,24 +156,14 @@ configure_pod() {
 ### MAIN ------------------------------------
 parse_arguments $@
 
-if [ $skipDocker -eq 0 ]
-then
-{
-    install_docker
-}
-fi
+/bin/bash ./setup-host.sh $hostname
 
-if [ $skipKubernetes -eq 0 ]
-then
-{
-    install_kubernetes
-}
-fi
+/bin/bash ./install-docker.sh
+
+/bin/bash ./install-kubernetes.sh
 
 if [ $isMaster -eq 1 ]
 then 
-    deploy_kubernetes
-else
-    configure_pod
+    /bin/bash ./init-kubernetes.sh $username $password
 fi
 ### END MAIN ----------------------------------
