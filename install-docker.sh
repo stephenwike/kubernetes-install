@@ -1,3 +1,4 @@
+#!/bin/bash
 echo "Installing Docker"
 
 apt update
@@ -6,7 +7,7 @@ apt-get install -y \
     ca-certificates \
     curl \
     software-properties-common
-    
+
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
 
 # TODO: Validate fingerprint - https://docs.docker.com/v17.09/engine/installation/linux/docker-ce/ubuntu/#set-up-the-repository
