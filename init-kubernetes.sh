@@ -18,7 +18,7 @@ if [ "$1" != "" ]; then
     cp -i /etc/kubernetes/admin.conf /home/$1/.kube/config
     chown $1 /home/$1/.kube/config
 
-    runuser -l $username -c "kubectl apply -f https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+    runuser -l $1 -c "kubectl apply -f https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
 
 else
     echo "Err: Missing username command line argument."
