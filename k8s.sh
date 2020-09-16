@@ -8,12 +8,16 @@ usage() {
 
     Variables
     -h | --host                     assigns host name to machine                    node-default
+    -i | --ip                       tracks the host machine's up address.           -queried
     -u | --username                 assigns username for ubuntu account             default
     -p | --password                 uses this password for ubuntu account           default
 
     Flags                           
     -m | --master                   Initializes the cluster as master               False
+    -d | --skip-docker              Skips installation of docker                    False
+    -k | --skip-kubernetes          Skips installation of kubernetes                False
          --help                     Runs the usage command
+
 
     Recommend specifying all arguments for best results.  Use flags as needed
     (e.g.) ./k8s.sh --host master-node --username myUser --password myPass -m
@@ -34,23 +38,23 @@ parse_arguments() {
     
     while [ "$1" != "" ]; do
         case $1 in
-            -h | --host )           shift
-                                    hostname=$1
-                                    ;;
-            -u | --username )       shift
-                                    username=$1
-                                    ;;
-            -p | --password )       shift
-                                    password=$1
-                                    ;;
-            -m | --master )         isMaster=1
-                                    ;;
-            --help )                usage
-                                    exit
-                                    ;;
-            * )                     echo "Incorrect Usage:"
-                                    usage
-                                    exit 1
+            -h | --host )               shift
+                                        hostname=$1
+                                        ;;
+            -u | --username )           shift
+                                        username=$1
+                                        ;;
+            -p | --password )           shift
+                                        password=$1
+                                        ;;
+            -m | --master )             isMaster=1
+                                        ;;
+            --help )                    usage
+                                        exit
+                                        ;;
+            * )                         echo "Incorrect Usage:"
+                                        usage
+                                        exit 1
         esac
         shift
     done
@@ -114,6 +118,7 @@ install_kubernetes() {
         kubelet \
         kubeadm \
         kubectl
+
     apt-mark hold kubelet kubeadm kubectl
     swapoff -a
     hostnamectl set-hostname $hostname
@@ -157,13 +162,15 @@ configure_pod() {
 
 ### MAIN ------------------------------------
 parse_arguments $@
-install_docker
-install_kubernetes
+
+/bin/bash ./setup-host.sh $hostname
+
+/bin/bash ./install-docker.sh
+
+/bin/bash ./install-kubernetes.sh
 
 if [ $isMaster -eq 1 ]
 then 
-    deploy_kubernetes
-else
-    configure_pod
+    /bin/bash ./init-kubernetes.sh $username $password
 fi
 ### END MAIN ----------------------------------
