@@ -62,19 +62,24 @@ install_docker() {
     echo "Installing Docker"
 
     apt update
-    apt-get install -y \
-        apt-transport-https \
+    apt install -y apt-transport-https \
         ca-certificates \
         curl \
+        gnupg-agent \
         software-properties-common
+    
+    # Docker's Official GPG Key
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-    # TODO: Validate fingerprint - https://docs.docker.com/v17.09/engine/installation/linux/docker-ce/ubuntu/#set-up-the-repository
+    
     add-apt-repository \
         "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
         $(lsb_release -cs) \
         stable"
+
     apt update
-    apt install -y docker-ce
+    apt install -y docker-ce \
+        docker-ce-cli \
+        containerd.io
 
     cat > /etc/docker/daemon.json << EOF
 {
@@ -86,6 +91,9 @@ install_docker() {
     "storage-driver": "overlay2"
 }
 EOF
+
+    mkdir -p /etc/systemd/system/docker.service.d
+    
     systemctl daemon-reload
     systemctl restart docker
 }
@@ -117,7 +125,6 @@ deploy_kubernetes() {
     
     apiserveraddr=$(hostname -I | cut -d' ' -f1)
     echo "APIServerAddress: $apiserveraddr"
-    echo kubeadm init --apiserver-advertise-address=$apiserveraddr
     kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=$apiserveraddr
 
     adduser $username --gecos "$username,,," --disabled-password
