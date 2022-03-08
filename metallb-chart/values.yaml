@@ -1,0 +1,6 @@
+metallb:
+  speaker:
+    tolerations:
+    - key: "metallb"
+      operator: "Exists"
+      effect: "NoSchedule"

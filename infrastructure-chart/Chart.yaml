@@ -1,0 +1,15 @@
+apiVersion: v2
+name: fss-infrastructure
+description: Cluster Infrastructure
+type: application
+version: 0.2.0
+appVersion: 0.2.0
+dependencies:
+  - name: elasticsearch
+    alias: elasticsearch
+    version: 7.9.0
+    repository: '@elastic'
+  - name: kibana
+    alias: kibana
+    version: 7.9.0
+    repository: '@elastic'

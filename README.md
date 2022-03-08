@@ -1,228 +1,348 @@
-# How I installed Kubernetes in Ubuntu 19.04
+# Installing Kubernetes in Hetzner cloud storage
 
-## Intentions: A Note to the reader
-This article is not to discuss Kubernetes and why you should use [Kubernetes](https://kubernetes.io/docs/concepts/overview/what-is-kubernetes/) for managing your containerized applications.
+reference: https://community.hetzner.com/tutorials/install-kubernetes-cluster
 
-This is an explaination of the steps I made to install my Kubernetes Cluster and what I learned along the way.  I hope this allows others to learn from my work.  I've included a script to quickly install kubernetes.  You can bypass this section if you're only interested in getting Kubernetes running for a learning environment.
+## Install hcloud-cli
 
-> Dislaimer: I maintain that I haven't covered all the necessary topics to encourage the release of a production kubernetes installation with only the information posted in this article.
+### 1. Create API Token -
 
-## Obtaining and Setting Up Servers
+reference: https://docs.hetzner.cloud/
 
-I used servers on Vultr.com for my Kubernetes deployment and installation learning.  They charge fractions of a cent per hour per server and you can bring up and tear down however many servers you want as needed without accruing additional charges.
+Login to **hetzner.com** and in the project click *Security* then click *API Tokens*.  Save token in a safe place for later use.
 
-Kubernetes requires at least 2 cpus per server.  They run at $20 per month ($0.03 per hour).
+### 2. Get started with hcloud-cli on local machine (Linux)
 
-I bought 3 servers, 1 server at 2 cpus for the master node and 2 servers with 1 cpu for the worker nodes.  (Mostly to see if they would still work.)
-
-Once you created a Vultr account, Click "Deploy New Server" (It's now a blue plus near the upper right side of the site.)  Aqcuire the servers as needed.  (One master and however many preferred worker nodes).  In the Settings, Change to OS to Ubuntu 19.04.  You can locate the server ip address and root user password for each server in the server's details page.
-
-## Install and Run Docker (On each server)
-
-### Installing Docker
-
-To [install Docker](https://docs.docker.com/v17.09/engine/installation/linux/docker-ce/ubuntu/) start by updating apt and installing the following packages.
-```
-apt update
-apt-get install -y \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    software-properties-common
-```
-
-Get the docker gpg key and install the docker-ce package.  You can check the Add a daemon.json file to the etc/docker/ directory.  This will get setup docker on your target machine.
+reference: https://github.com/hetznercloud/cli
 
 ```
+apt update && apt install -y hcloud-cli
+
+hcloud context create <my-project>
+
+hcloud network create --name kubernetes --ip-range 10.98.0.0/16
+
+hcloud network add-subnet kubernetes --network-zone eu-central --type server --ip-range 10.98.0.0/16
+
+ssh-keygen
+hcloud ssh-key create --name sshkey --public-key-from-file ~/.ssh/id_rsa.pub
+
+hcloud server create --type cx11 --name master-1 --image ubuntu-18.04 --ssh-key sshkey --network kubernetes
+
+hcloud server create --type cx21 --name worker-1 --image ubuntu-18.04 --ssh-key sshkey --network kubernetes
+
+hcloud server create --type cx21 --name worker-2 --image ubuntu-18.04 --ssh-key sshkey --network kubernetes
+
+hcloud floating-ip create --type ipv4 --home-location nbg1
+```
+
+### 3. Configure the network
+
+Add this file to each worker node.
+
+
+```
+#/etc/network/interfaces.d/60-floating-ip.cfg
+
+auto eth0:1
+iface eth0:1 inet static
+  address <your.floating.ip.address>
+  netmask 32
+```
+
+Then restart networking service
+
+```
+systemctl restart networking.service
+```
+
+## Installing Docker
+reference: https://kubernetes.io/docs/setup/production-environment/container-runtimes/
+
+```
+apt update && apt install -y \
+  apt-transport-https ca-certificates curl software-properties-common gnupg2
+  
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-add-apt-repository \
-    "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-    $(lsb_release -cs) \
-    stable"
-apt update
-apt install -y docker-ce
 
-cat > /etc/docker/daemon.json << EOF
+add-apt-repository \
+  "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) \
+  stable"
+  
+apt update && apt install -y \
+  containerd.io=1.2.13-2 \
+  docker-ce=5:19.03.11~3-0~ubuntu-$(lsb_release -cs) \
+  docker-ce-cli=5:19.03.11~3-0~ubuntu-$(lsb_release -cs)
+
+cat > /etc/docker/daemon.json <<EOF
 {
-    "exec-opts": ["native.cgroupdriver=systemd"],
-    "log-driver": "json-file",
-    "log-opts": {
-        "max-size": "100m"
-    },
-    "storage-driver": "overlay2"
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
 }
 EOF
-```
 
-> Tip: Verify the fingerprint is `9DC8 5822 9FC7 DD38 854A E2D8 8D81 803C 0EBF CD88` using the following command.
-> `sudo apt-key fingerprint 0EBFCD88`
+mkdir -p /etc/systemd/system/docker.service.d
 
-It may be a good idea to restart docker.
-
-```
 systemctl daemon-reload
+
 systemctl restart docker
 ```
 
-> Ref: https://docs.docker.com/install/linux/docker-ce/ubuntu
+## Installing Kubernetes Package
 
-## Installing and Deploying Kubernetes
-
-Install apt-transport and curl to get the kubernetes gpg key.  Add the kubernetes repository.  Then install the kubelet, kubeadm, and kubectl packages.
+reference: https://linuxconfig.org/how-to-install-kubernetes-on-ubuntu-18-04-bionic-beaver-linux
 
 ```
-apt update
-apt install -y \
-    apt-transport-https \
-    curl
-    
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
-    
-apt-add-repository “deb http://apt.kubernetes.io/ kubernetes-xenial main”
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add
 
-apt update
-apt install -y \
-    kubelet \
-    kubeadm \
-    kubectl
-```
+apt-add-repository "deb http://apt.kubernetes.io/ kubernetes-xenial main"
 
-Mark the kubelet, kubeadm and kubectl packages to hold their current version.
+apt install -y kubeadm 
 
-```
-apt-mark hold kubelet kubeadm kubectl
-```
-
-[SWAP](https://wiki.archlinux.org/index.php/Swap) has to be disabled for kubernetes to route correctly.
-
-```
 swapoff -a
 ```
 
-Give your server a unique hostname.
+## Prepare the Cloud Controller Manager (Hetzner)
+reference: https://github.com/hetznercloud/hcloud-cloud-controller-manager
+
+Add this file to each server.
 
 ```
-hostnamectl set-hostname [yourhostname]
+cat <<EOF >>/etc/systemd/system/kubelet.service.d/20-hcloud.conf
+[Service]
+Environment="KUBELET_EXTRA_ARGS=--cloud-provider=external"
+EOF
 ```
 
-> replace [yourhostname] with a unique hostname for this server.
-
-
-
-### For Installing Kubernetes On Master -- Only
-
-The following command will initialize the Kubernetes cluster.
+Then reload systemd unit files
 
 ```
-apiserveraddr=$(hostname -I | cut -d' ' -f1)
-kubeadm init --pod-network-cidr=10.244.0.0/16 --apiserver-advertise-address=$apiserveraddr
+systemctl daemon-reload
 ```
 
-**If successfully executed, there will be a `kubeadm join` command printed to the console.  Save this command for the "Joining Kubernetes Servers" section.**
+System needs to be able to forward traffic between nodes and pods.  On each server, run:
 
-After this is done, there are a few commands that require a sudo user.  [Create a new user](https://www.digitalocean.com/community/tutorials/how-to-add-and-delete-users-on-ubuntu-16-04) if you don't already have one.  Run the following commands from the sudo user account.
+```
+cat <<EOF >>/etc/sysctl.conf
+
+# Allow IP forwarding for kubernetes
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+net.ipv6.conf.default.forwarding = 1
+EOF
+
+sysctl -p
+```
+
+## Setting Up Control Plane
+
+On the master node only.
+
+```
+kubeadm config images pull
+
+kubeadm init \
+  --pod-network-cidr=10.244.0.0/16 \
+  --kubernetes-version=v1.19.0 \
+  --ignore-preflight-errors=NumCPU \
+  --apiserver-cert-extra-sans 10.98.0.0/16
+```
+
+From the `kubeadm init...` command output, save the `kubeadm join...` command for later use.
+
+## Add Admin Users
+reference: https://phoenixnap.com/kb/how-to-create-sudo-user-on-ubuntu
+
+```
+adduser <newuser>
+
+usermod -aG sudo <newuser>
+
+su - <newuser>
+```
+
+## Startup Kubernetes
+
+### 1. Add configuration for admin
 
 ```
 mkdir -p $HOME/.kube
+
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-Install [networking pods](https://kubernetes.io/docs/concepts/cluster-administration/addons/).  I used flannel for my installation.
+### 2. Add hcloud secrets
 
 ```
- https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
+kubectl -n kube-system create secret generic hcloud --from-literal=token=<hcloud API token> --from-literal=network=<hcloud Network_ID_or_Name>
+
+# or...
+
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hcloud
+  namespace: kube-system
+stringData:
+  token: "<hetzner_api_token>"
+  network: "<hetzner_network_id>"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hcloud-csi
+  namespace: kube-system
+stringData:
+  token: "<hetzner_api_token>"
+EOF
 ```
 
-Expose firewall ports [used by kubeadm](https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/) and the kubelet API and the Kubernetes API server.
+### 3. Setup Kubernetes Resources (Flannel CNI and hcloud)
 
 ```
-sudo ufw allow ssh
-sudo ufw default deny outgoing
-sudo ufw default deny incoming
-sudo ufw --force enable
-sudo ufw allow 6443
-sudo ufw allow 2379/tcp
-sudo ufw allow 2380/tcp
-sudo ufw allow 10250/tcp
-sudo ufw allow 10251/tcp
-sudo ufw allow 10252/tcp
+kubectl apply -f  https://raw.githubusercontent.com/hetznercloud/hcloud-cloud-controller-manager/master/deploy/v1.7.0.yaml
+
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+kubectl -n kube-system patch ds kube-flannel-ds --type json -p '[{"op":"add","path":"/spec/template/spec/tolerations/-","value":{"key":"node.cloudprovider.kubernetes.io/uninitialized","value":"true","effect":"NoSchedule"}}]'
+
+kubectl -n kube-system patch deployment coredns --type json -p '[{"op":"add","path":"/spec/template/spec/tolerations/-","value":{"key":"node.cloudprovider.kubernetes.io/uninitialized","value":"true","effect":"NoSchedule"}}]'
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/csi-api/release-1.14/pkg/crd/manifests/csidriver.yaml
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/csi-api/release-1.14/pkg/crd/manifests/csinodeinfo.yaml
+
+kubectl apply -f https://raw.githubusercontent.com/hetznercloud/csi-driver/master/deploy/kubernetes/hcloud-csi.yml
 ```
 
-### For Installing Kubernetes on Worker Nodes -- Only
-
-Expose firewall ports for the kubelet API
+## Join Worker Nodes
 
 ```
-sudo ufw allow ssh
-sudo ufw default deny outgoing
-sudo ufw default deny incoming
-sudo ufw --force enable
-sudo ufw allow 10250/tcp
+kubeadm join 135.181.28.86:6443 --token <token> \
+    --discovery-token-ca-cert-hash sha256:<sha-here>
 ```
 
-[Optionally] Install the ports used by NodePort Services.  I personally use an ingress to direct traffic and don't expose NodePort services.
+If this wasn't recorded when calling kubeadm init command, use this command on the master node to get join command
 
 ```
-sudo ufw allow 30000:32767/tcp
+kubeadm token create --print-join-command
 ```
 
-> Ref: https://vitux.com/install-and-deploy-kubernetes-on-ubuntu/
-
-## Joining Kubernetes Servers
-
-By executing the `kubeadm join` command (saved from the previous step) on the worker nodes, we can add the worker nodes to our Kubernetes Cluster.
-
-> If you missed the `kubeadm join` command, you can generate a new token and print the join command with this `kubeadm token create --print-join-command`
-
-> Ref: https://kubernetes.io/docs/reference/setup-tools/kubeadm/kubeadm-token/
-
-You can verify this worked by executing the following command as the sudo user in the master node.
+## Installing Helm 3.0+ (if wanted on server, would recommend locally instead)
 
 ```
-kubectl get nodes
+curl https://baltocdn.com/helm/signing.asc | sudo apt-key add -
+
+echo "deb https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+
+sudo apt update && sudo apt -y install helm
 ```
 
-## Running the Setup Script
-
-I created a script to help deploy my Kubernetes Cluster quicker.  There are variable and flags that can be provided to install Kubernetes for the correct node type.
-
-### For Installing the Master Node
-
-Here is the command to run the script with arguments for installing the master node.
+## Setup Load Balancing
 
 ```
-curl -Ls https://raw.githubusercontent.com/stephenwike/kubernetes-install/master/k8s.sh | bash -s -- -m -h [hostname] -u [username] -p [password]
+kubectl create namespace metallb
+
+helm install metallb -n metallb stable/metallb
 ```
 
-`-m` sets a flag to install Kubernetes for the master node.
-
-`-h [hostname]` specifies the unique host name for this machine.  Replace [hostname] with your unique hostname
-
-`-u [username]` specifies the user account used to deploy the kubernetes cluster.  A new user will be added if one doesn't exist. Replace [username] with the user account that will be used to deploy the kubernetes cluster.
-
-`-p [password]` specifies the password the the user account listed above. Replace [password] with you users password
-
-### Installing Worker Nodes
-
-This is the installation script for installing a worker node.  The only variable supplied is the hostname which is required to be unique.
+Create and Apply the metallb configmap
 
 ```
-curl -Ls https://raw.githubusercontent.com/stephenwike/kubernetes-install/master/k8s.sh | bash -s -- -h [hostname]
+cat <<EOF |kubectl apply -f-
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: metallb
+  name: metallb-config
+data:
+  config: |
+    address-pools:
+    - name: default
+      protocol: layer2
+      addresses:
+      - <your.floating.ip.address>/32
+EOF
 ```
 
-> Make sure to run the `kubeadm install` command described above to join the new worker node into the Kubernetes cluster.
+## Adding the Nginx Ingress Controller
 
-## Additional Reference
+```
+helm repo add nginx-stable https://helm.nginx.com/stable
+helm repo update
 
-> Ref: https://kubernetes.io/docs/setup/production-environment/container-runtimes/
+kubectl create namespace nginx-ingress
+helm install nginx-ingress -n nginx-ingress nginx-stable/nginx-ingress
+```
+	  
+## To Test Ingress Working
 
-## Opportunities for Additional Coverage
-
-// A missed step setting up docker ??
-mkdir -p /etc/systemd/system/docker.service.d
-
-// Used to permanently disable SWAP
-sed 's/^UUID/#&/' /etc/fstab | tee /etc/fstab 
-
-Ref: Example by Michael Hausenblas detailed and accessible guide.
+```
+cat <<EOF |kubectl apply -f-
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minimal-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: "fireshellstudio.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: beanie-kiosk-service
+            port:
+              number: 3000
+  - host: "www.fireshellstudio.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: beanie-kiosk-service
+            port:
+              number: 3000
+  - host: "float.fireshellstudio.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: beanie-kiosk-service
+            port:
+              number: 3000
+  - host: "master.fireshellstudio.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: beanie-kiosk-service
+            port:
+              number: 3000
+  - host: "worker1.fireshellstudio.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: beanie-kiosk-service
+            port:
+              number: 3000
+EOF
+```
